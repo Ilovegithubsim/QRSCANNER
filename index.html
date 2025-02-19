@@ -3,20 +3,14 @@
 <head>
   <title>QR Code Scanner</title>
   <script src="https://unpkg.com/jsqr"></script>
-  <script>
-  window.onload = function() {
-    if (typeof jsQR !== "function") {
-      alert("❌ jsQR Library Failed to Load! Try Refreshing or Using Another Browser.");
-      console.error("jsQR is not loaded properly.");
-    } else {
-      console.log("✅ jsQR Library Loaded Successfully!");
-    }
-  };
-</script>
 </head>
 <body>
   <h2>Scan a QR Code</h2>
-  <video id="qr-video" width="300" height="300"></video>
+  
+  <label for="cameraSelect">Choose Camera:</label>
+  <select id="cameraSelect"></select>
+
+  <video id="qr-video" width="100%" height="300" autoplay playsinline style="display: block !important; opacity: 1 !important; background-color: black;"></video>
   <canvas id="qr-canvas"></canvas>
   <p id="result">Scanning...</p>
 
@@ -25,39 +19,72 @@
     const canvas = document.getElementById("qr-canvas");
     const ctx = canvas.getContext("2d");
     const resultText = document.getElementById("result");
+    const cameraSelect = document.getElementById("cameraSelect");
 
-    // Activate camera
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-      .then(stream => video.srcObject = stream);
+    async function getCameras() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === "videoinput");
 
-    // Scan QR Code every 2 seconds
-    video.addEventListener("loadeddata", function() {
-      setInterval(() => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        if (videoDevices.length > 0) {
+          videoDevices.forEach((device, index) => {
+            const option = document.createElement("option");
+            option.value = device.deviceId;
+            option.text = device.label || `Camera ${index + 1}`;
+            cameraSelect.appendChild(option);
+          });
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
+          cameraSelect.addEventListener("change", () => {
+            startCamera(cameraSelect.value);
+          });
 
-        if (code) {
-          let scannedNumber = code.data.match(/\d{6}/); // Extract 6-digit number
-          if (scannedNumber) {
-            sendToGoogleAppsScript(scannedNumber[0]);
-          }
+          startCamera(videoDevices[0].deviceId);
+        } else {
+          resultText.innerText = "❌ No cameras detected!";
         }
-      }, 2000);
-    });
-
-    function sendToGoogleAppsScript(qrData) {
-      const scriptURL = "https://script.google.com/macros/s/AKfycbwLE_mqTur18wZzZOy9gMTmGucZC6mBoWo1xaCxCk1T97nfzTfh79M-5YBY13qh6Ixtow/exec";
-      fetch(scriptURL + "?qrData=" + encodeURIComponent(qrData))
-        .then(response => response.text())
-        .then(data => {
-          resultText.innerText = data; // Show result (Match/No Match)
-        })
-        .catch(error => console.error("Error:", error));
+      } catch (error) {
+        console.error("Error fetching camera devices:", error);
+        resultText.innerText = "❌ Camera not accessible!";
+      }
     }
+
+    async function startCamera(deviceId = null) {
+      try {
+        const constraints = {
+          video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "user" }
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        console.log("✅ Camera started successfully!");
+      } catch (error) {
+        console.error("❌ Camera error:", error);
+        resultText.innerText = "❌ Cannot access camera!";
+      }
+    }
+
+    // ✅ Add Restart Camera Function
+    function restartCamera() {
+      console.warn("⚠️ Camera not sending video, restarting...");
+      video.srcObject = null; // Stop existing stream
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+        .then(stream => {
+          video.srcObject = stream;
+          console.log("✅ Camera restarted successfully!");
+        })
+        .catch(error => {
+          console.error("❌ Camera restart error:", error);
+          resultText.innerText = "❌ Could not restart camera!";
+        });
+    }
+
+    // ✅ Auto-Restart Camera If Video Fails to Load
+    setTimeout(() => {
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        restartCamera();
+      }
+    }, 3000);
+
+    getCameras(); // Load available cameras on page load
   </script>
 </body>
 </html>
