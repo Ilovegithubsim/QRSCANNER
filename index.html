@@ -88,23 +88,28 @@
 
     // ✅ Step 4: Detect QR Code in Camera Feed
     video.addEventListener("loadeddata", function() {
-      setInterval(() => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  setInterval(() => {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-        if (code) {
-          console.log("📸 Scanned QR Code Data:", code.data); // Debugging log
-          let scannedNumber = code.data.match(/\d{6}/); // Extract 6-digit number
-          if (scannedNumber) {
-            sendToGoogleAppsScript(scannedNumber[0]);
-          }
-        }
-      }, 2000);
-    });
+    console.log("📸 Capturing video frame for QR detection..."); // Debugging log
+
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+    if (code) {
+      console.log("📸 Scanned QR Code Data:", code.data); // Debugging log
+      let scannedNumber = code.data.match(/\d{6}/); // Extract 6-digit number
+      if (scannedNumber) {
+        sendToGoogleAppsScript(scannedNumber[0]);
+      }
+    } else {
+      console.warn("⚠️ No QR code detected.");
+    }
+  }, 2000);
+});
 
     // ✅ Step 5: Send Scanned QR Code to Google Apps Script
     function sendToGoogleAppsScript(qrData) {
