@@ -21,6 +21,7 @@
     const resultText = document.getElementById("result");
     const cameraSelect = document.getElementById("cameraSelect");
 
+    // ✅ Step 1: Get Camera List
     async function getCameras() {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -48,6 +49,7 @@
       }
     }
 
+    // ✅ Step 2: Start Camera
     async function startCamera(deviceId = null) {
       try {
         const constraints = {
@@ -62,7 +64,7 @@
       }
     }
 
-    // ✅ Add Restart Camera Function
+    // ✅ Step 3: Auto Restart Camera If Not Showing Video
     function restartCamera() {
       console.warn("⚠️ Camera not sending video, restarting...");
       video.srcObject = null; // Stop existing stream
@@ -77,13 +79,51 @@
         });
     }
 
-    // ✅ Auto-Restart Camera If Video Fails to Load
+    // If the video is not showing, restart the camera after 3 seconds
     setTimeout(() => {
       if (video.videoWidth === 0 || video.videoHeight === 0) {
         restartCamera();
       }
     }, 3000);
 
+    // ✅ Step 4: Detect QR Code in Camera Feed
+    video.addEventListener("loadeddata", function() {
+      setInterval(() => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+        if (code) {
+          console.log("📸 Scanned QR Code Data:", code.data); // Debugging log
+          let scannedNumber = code.data.match(/\d{6}/); // Extract 6-digit number
+          if (scannedNumber) {
+            sendToGoogleAppsScript(scannedNumber[0]);
+          }
+        }
+      }, 2000);
+    });
+
+    // ✅ Step 5: Send Scanned QR Code to Google Apps Script
+    function sendToGoogleAppsScript(qrData) {
+      console.log("📡 Sending QR Data:", qrData); // Debugging log
+
+      const scriptURL = "https://script.google.com/macros/s/AKfycbwLE_mqTur18wZzZOy9gMTmGucZC6mBoWo1xaCxCk1T97nfzTfh79M-5YBY13qh6Ixtow/exec"; // Replace with your Google Apps Script URL
+      fetch(scriptURL + "?qrData=" + encodeURIComponent(qrData))
+        .then(response => response.text())
+        .then(data => {
+          console.log("📡 Response from server:", data); // Debugging log
+          resultText.innerText = data; // Show result on page
+        })
+        .catch(error => {
+          console.error("❌ Error sending QR data:", error);
+          resultText.innerText = "❌ Failed to check QR!";
+        });
+    }
+
+    // Start process
     getCameras(); // Load available cameras on page load
   </script>
 </body>
