@@ -2,7 +2,17 @@
 <html>
 <head>
   <title>QR Code Scanner</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsqrcode/1.4.0/jsQR.min.js"></script>
+  <script src="https://unpkg.com/jsqr"></script>
+  <script>
+  window.onload = function() {
+    if (typeof jsQR !== "function") {
+      alert("❌ jsQR Library Failed to Load! Try Refreshing or Using Another Browser.");
+      console.error("jsQR is not loaded properly.");
+    } else {
+      console.log("✅ jsQR Library Loaded Successfully!");
+    }
+  };
+</script>
 </head>
 <body>
   <h2>Scan a QR Code</h2>
