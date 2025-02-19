@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QR Code Scanner</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsqrcode/1.4.0/jsQR.min.js"></script>
+</head>
+<body>
+  <h2>Scan a QR Code</h2>
+  <video id="qr-video" width="300" height="300"></video>
+  <canvas id="qr-canvas"></canvas>
+  <p id="result">Scanning...</p>
+
+  <script>
+    const video = document.getElementById("qr-video");
+    const canvas = document.getElementById("qr-canvas");
+    const ctx = canvas.getContext("2d");
+    const resultText = document.getElementById("result");
+
+    // Activate camera
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      .then(stream => video.srcObject = stream);
+
+    // Scan QR Code every 2 seconds
+    video.addEventListener("loadeddata", function() {
+      setInterval(() => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+        if (code) {
+          let scannedNumber = code.data.match(/\d{6}/); // Extract 6-digit number
+          if (scannedNumber) {
+            sendToGoogleAppsScript(scannedNumber[0]);
+          }
+        }
+      }, 2000);
+    });
+
+    function sendToGoogleAppsScript(qrData) {
+      const scriptURL = "https://script.google.com/macros/s/AKfycbwLE_mqTur18wZzZOy9gMTmGucZC6mBoWo1xaCxCk1T97nfzTfh79M-5YBY13qh6Ixtow/exec";
+      fetch(scriptURL + "?qrData=" + encodeURIComponent(qrData))
+        .then(response => response.text())
+        .then(data => {
+          resultText.innerText = data; // Show result (Match/No Match)
+        })
+        .catch(error => console.error("Error:", error));
+    }
+  </script>
+</body>
+</html>
