@@ -15,7 +15,7 @@
       position: absolute;
       top: -9999px; /* Moves it far away from view */
       left: -9999px;
-  }
+    }
 
     * {
       margin: 0;
@@ -129,6 +129,7 @@
     const ctx = canvas.getContext("2d");
     const resultText = document.getElementById("result");
     const cameraSelect = document.getElementById("cameraSelect");
+    let lastScanned = ""; // Store last scanned QR code
 
     async function getCameras() {
       try {
@@ -171,32 +172,39 @@
       }
     }
 
-    /* 🔥 QR Code Scanning */
-    video.addEventListener("loadeddata", function() {
-      setInterval(() => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear old frames
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clears old frame
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    function scanQRCode() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+      const centerX = canvas.width / 4;
+      const centerY = canvas.height / 4;
+      const scanWidth = canvas.width / 2;
+      const scanHeight = canvas.height / 2;
+      const imageData = ctx.getImageData(centerX, centerY, scanWidth, scanHeight);
 
-        const centerX = canvas.width / 4;
-const centerY = canvas.height / 4;
-const scanWidth = canvas.width / 2;
-const scanHeight = canvas.height / 2;
-const imageData = ctx.getImageData(centerX, centerY, scanWidth, scanHeight);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
 
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code) {
+        let scannedNumber = code.data.match(/\d{6}/);
+        if (scannedNumber && scannedNumber[0] !== lastScanned) {
+          lastScanned = scannedNumber[0]; // Save last scanned QR
+          console.log("✅ New QR Code Scanned:", scannedNumber[0]);
+          sendToGoogleAppsScript(scannedNumber[0]);
 
-        if (code) {
-          let scannedNumber = code.data.match(/\d{6}/);
-          if (scannedNumber) {
-            sendToGoogleAppsScript(scannedNumber[0]);
-          }
+          // Prevent multiple detections of the same QR for 2 seconds
+          setTimeout(() => {
+            lastScanned = "";
+          }, 2000);
         }
-      }, 800);
-    });
+      }
+
+      requestAnimationFrame(scanQRCode); // 🔥 Scan every video frame (Real-time)
+    }
+
+    // ✅ Start scanning when video is loaded
+    video.addEventListener("loadeddata", scanQRCode);
 
     function sendToGoogleAppsScript(qrData) {
       const scriptURL = "https://script.google.com/macros/s/AKfycbwLE_mqTur18wZzZOy9gMTmGucZC6mBoWo1xaCxCk1T97nfzTfh79M-5YBY13qh6Ixtow/exec";
@@ -204,8 +212,6 @@ const imageData = ctx.getImageData(centerX, centerY, scanWidth, scanHeight);
         .then(response => response.text())
         .then(data => {
           resultText.innerText = data;
-          resultText.classList.toggle("success", data.includes("✅"));
-          resultText.classList.toggle("error", data.includes("❌"));
         })
         .catch(error => {
           console.error("❌ Error sending QR data:", error);
