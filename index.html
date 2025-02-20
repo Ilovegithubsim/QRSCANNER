@@ -128,6 +128,8 @@
       <div class="scan-box"></div> <!-- 🔥 Red box for guidance -->
     </div>
 
+    <canvas id="qr-canvas"></canvas> <!-- Canvas must exist but is hidden -->
+
     <div class="result">
       <p id="result">Scanning...</p>
     </div>
@@ -170,10 +172,11 @@
     async function startCamera(deviceId = null) {
       try {
         const constraints = {
-          video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "user" }
+          video: deviceId ? { deviceId: { exact: deviceId } } : { width: 1280, height: 720, facingMode: "environment" }
         };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = stream;
+        console.log("✅ Camera started successfully!");
       } catch (error) {
         console.error("❌ Camera error:", error);
         resultText.innerText = "❌ Cannot access camera!";
