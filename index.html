@@ -1,18 +1,158 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QR Code Scanner</title>
   <script src="https://unpkg.com/jsqr"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(to bottom right, #1e3a8a, #581c87, #4c1d95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 42rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+      border-radius: 1rem;
+      padding: 2rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .header svg {
+      width: 2rem;
+      height: 2rem;
+      color: white;
+    }
+
+    .header h2 {
+      color: white;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .camera-select {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .camera-select svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      color: white;
+    }
+
+    .camera-select label {
+      color: white;
+    }
+
+    select {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 0.5rem;
+      padding: 0.25rem 0.75rem;
+      outline: none;
+    }
+
+    select:focus {
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+    }
+
+    .video-container {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+
+    video {
+      width: 100%;
+      border-radius: 0.5rem;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+    }
+
+    .video-border {
+      position: absolute;
+      inset: 0;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 0.5rem;
+      pointer-events: none;
+    }
+
+    canvas {
+      display: none;
+    }
+
+    .result {
+      background-color: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(4px);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    #result {
+      color: white;
+      text-align: center;
+      font-weight: 500;
+    }
+  </style>
 </head>
 <body>
-  <h2>Scan a QR Code</h2>
-  
-  <label for="cameraSelect">Choose Camera:</label>
-  <select id="cameraSelect"></select>
+  <div class="container">
+    <div class="header">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="14" height="14" x="3" y="3" rx="2"/>
+        <path d="M7 7h.01"/>
+        <path d="M7 17h.01"/>
+        <path d="M17 7h.01"/>
+        <path d="M17 17h.01"/>
+      </svg>
+      <h2>Scan a QR Code</h2>
+    </div>
 
-  <video id="qr-video" width="100%" height="300" autoplay playsinline style="display: block !important; opacity: 1 !important; background-color: black;"></video>
-  <canvas id="qr-canvas"></canvas>
-  <p id="result">Scanning...</p>
+    <div class="camera-select">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+        <circle cx="12" cy="13" r="3"/>
+      </svg>
+      <label for="cameraSelect">Choose Camera:</label>
+      <select id="cameraSelect"></select>
+    </div>
+
+    <div class="video-container">
+      <video id="qr-video" height="300" autoplay playsinline></video>
+      <div class="video-border"></div>
+    </div>
+
+    <canvas id="qr-canvas"></canvas>
+
+    <div class="result">
+      <p id="result">Scanning...</p>
+    </div>
+  </div>
 
   <script>
     const video = document.getElementById("qr-video");
@@ -88,28 +228,28 @@
 
     // ✅ Step 4: Detect QR Code in Camera Feed
     video.addEventListener("loadeddata", function() {
-  setInterval(() => {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      setInterval(() => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-    console.log("📸 Capturing video frame for QR detection..."); // Debugging log
+        console.log("📸 Capturing video frame for QR detection..."); // Debugging log
 
-    const code = jsQR(imageData.data, imageData.width, imageData.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
 
-    if (code) {
-      console.log("📸 Scanned QR Code Data:", code.data); // Debugging log
-      let scannedNumber = code.data.match(/\d{6}/); // Extract 6-digit number
-      if (scannedNumber) {
-        sendToGoogleAppsScript(scannedNumber[0]);
-      }
-    } else {
-      console.warn("⚠️ No QR code detected.");
-    }
-  }, 2000);
-});
+        if (code) {
+          console.log("📸 Scanned QR Code Data:", code.data); // Debugging log
+          let scannedNumber = code.data.match(/\d{6}/); // Extract 6-digit number
+          if (scannedNumber) {
+            sendToGoogleAppsScript(scannedNumber[0]);
+          }
+        } else {
+          console.warn("⚠️ No QR code detected.");
+        }
+      }, 2000);
+    });
 
     // ✅ Step 5: Send Scanned QR Code to Google Apps Script
     function sendToGoogleAppsScript(qrData) {
