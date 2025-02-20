@@ -172,7 +172,12 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear old frames
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const centerX = canvas.width / 4;
+const centerY = canvas.height / 4;
+const scanWidth = canvas.width / 2;
+const scanHeight = canvas.height / 2;
+const imageData = ctx.getImageData(centerX, centerY, scanWidth, scanHeight);
+
         const code = jsQR(imageData.data, imageData.width, imageData.height);
 
         if (code) {
