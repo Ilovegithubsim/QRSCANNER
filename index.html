@@ -65,9 +65,22 @@
     }
 
     .video-container {
-      position: relative;
-      margin-bottom: 10px;
-    }
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.scan-box {
+  position: absolute;
+  top: 25%;
+  left: 25%;
+  width: 50%;
+  height: 50%;
+  border: 3px dashed #ff3d3d;
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 10;
+}
+
 
     video {
       width: 100%;
@@ -106,6 +119,7 @@
     </div>
 
     <div class="video-container">
+      <div class="scan-box"></div>
       <video id="qr-video" height="300" autoplay playsinline></video>
     </div>
 
@@ -164,22 +178,28 @@
     }
 
     video.addEventListener("loadeddata", function() {
-      setInterval(() => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  setInterval(() => {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
+    // ✅ Focus on Center for Better Scanning
+    const centerX = canvas.width / 4;
+    const centerY = canvas.height / 4;
+    const scanWidth = canvas.width / 2;
+    const scanHeight = canvas.height / 2;
+    const imageData = ctx.getImageData(centerX, centerY, scanWidth, scanHeight);
 
-        if (code) {
-          let scannedNumber = code.data.match(/\d{6}/);
-          if (scannedNumber) {
-            sendToGoogleAppsScript(scannedNumber[0]);
-          }
-        }
-      }, 2000);
-    });
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+    if (code) {
+      let scannedNumber = code.data.match(/\d{6}/);
+      if (scannedNumber) {
+        sendToGoogleAppsScript(scannedNumber[0]);
+      }
+    }
+  }, 2000);
+});
 
     function sendToGoogleAppsScript(qrData) {
       const scriptURL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
