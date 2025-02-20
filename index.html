@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QR Code Scanner</title>
   <script src="https://unpkg.com/jsqr"></script>
+  
   <style>
     * {
       margin: 0;
@@ -30,6 +31,7 @@
       border-radius: 1rem;
       padding: 2rem;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      text-align: center;
     }
 
     .header {
@@ -37,6 +39,7 @@
       align-items: center;
       gap: 0.75rem;
       margin-bottom: 1.5rem;
+      justify-content: center;
     }
 
     .header svg {
@@ -56,16 +59,13 @@
       align-items: center;
       gap: 0.75rem;
       margin-bottom: 1rem;
-    }
-
-    .camera-select svg {
-      width: 1.25rem;
-      height: 1.25rem;
-      color: white;
+      justify-content: center;
     }
 
     .camera-select label {
       color: white;
+      font-size: 1rem;
+      font-weight: 500;
     }
 
     select {
@@ -73,12 +73,9 @@
       color: white;
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 0.5rem;
-      padding: 0.25rem 0.75rem;
+      padding: 0.4rem 1rem;
       outline: none;
-    }
-
-    select:focus {
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+      font-size: 1rem;
     }
 
     .video-container {
@@ -91,6 +88,7 @@
       border-radius: 0.5rem;
       background-color: rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(4px);
+      border: 3px solid white;
     }
 
     .video-border {
@@ -101,22 +99,30 @@
       pointer-events: none;
     }
 
-    canvas {
-      display: none;
-    }
-
     .result {
       background-color: rgba(255, 255, 255, 0.2);
       backdrop-filter: blur(4px);
       border-radius: 0.5rem;
       padding: 1rem;
       margin-top: 1rem;
+      font-size: 1.2rem;
+      font-weight: bold;
     }
 
     #result {
       color: white;
       text-align: center;
-      font-weight: 500;
+      transition: 0.3s;
+    }
+
+    .success {
+      background-color: #4caf50 !important;
+      color: white !important;
+    }
+
+    .error {
+      background-color: #e74c3c !important;
+      color: white !important;
     }
   </style>
 </head>
@@ -134,10 +140,6 @@
     </div>
 
     <div class="camera-select">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-        <circle cx="12" cy="13" r="3"/>
-      </svg>
       <label for="cameraSelect">Choose Camera:</label>
       <select id="cameraSelect"></select>
     </div>
@@ -161,7 +163,6 @@
     const resultText = document.getElementById("result");
     const cameraSelect = document.getElementById("cameraSelect");
 
-    // ✅ Step 1: Get Camera List
     async function getCameras() {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -189,7 +190,6 @@
       }
     }
 
-    // ✅ Step 2: Start Camera
     async function startCamera(deviceId = null) {
       try {
         const constraints = {
@@ -197,36 +197,12 @@
         };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = stream;
-        console.log("✅ Camera started successfully!");
       } catch (error) {
         console.error("❌ Camera error:", error);
         resultText.innerText = "❌ Cannot access camera!";
       }
     }
 
-    // ✅ Step 3: Auto Restart Camera If Not Showing Video
-    function restartCamera() {
-      console.warn("⚠️ Camera not sending video, restarting...");
-      video.srcObject = null; // Stop existing stream
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-        .then(stream => {
-          video.srcObject = stream;
-          console.log("✅ Camera restarted successfully!");
-        })
-        .catch(error => {
-          console.error("❌ Camera restart error:", error);
-          resultText.innerText = "❌ Could not restart camera!";
-        });
-    }
-
-    // If the video is not showing, restart the camera after 3 seconds
-    setTimeout(() => {
-      if (video.videoWidth === 0 || video.videoHeight === 0) {
-        restartCamera();
-      }
-    }, 3000);
-
-    // ✅ Step 4: Detect QR Code in Camera Feed
     video.addEventListener("loadeddata", function() {
       setInterval(() => {
         canvas.width = video.videoWidth;
@@ -234,33 +210,25 @@
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-        console.log("📸 Capturing video frame for QR detection..."); // Debugging log
-
         const code = jsQR(imageData.data, imageData.width, imageData.height);
 
         if (code) {
-          console.log("📸 Scanned QR Code Data:", code.data); // Debugging log
-          let scannedNumber = code.data.match(/\d{6}/); // Extract 6-digit number
+          let scannedNumber = code.data.match(/\d{6}/);
           if (scannedNumber) {
             sendToGoogleAppsScript(scannedNumber[0]);
           }
-        } else {
-          console.warn("⚠️ No QR code detected.");
         }
       }, 2000);
     });
 
-    // ✅ Step 5: Send Scanned QR Code to Google Apps Script
     function sendToGoogleAppsScript(qrData) {
-      console.log("📡 Sending QR Data:", qrData); // Debugging log
-
-      const scriptURL = "https://script.google.com/macros/s/AKfycbwLE_mqTur18wZzZOy9gMTmGucZC6mBoWo1xaCxCk1T97nfzTfh79M-5YBY13qh6Ixtow/exec"; // Replace with your Google Apps Script URL
+      const scriptURL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
       fetch(scriptURL + "?qrData=" + encodeURIComponent(qrData))
         .then(response => response.text())
         .then(data => {
-          console.log("📡 Response from server:", data); // Debugging log
-          resultText.innerText = data; // Show result on page
+          resultText.innerText = data;
+          resultText.classList.toggle("success", data.includes("✅"));
+          resultText.classList.toggle("error", data.includes("❌"));
         })
         .catch(error => {
           console.error("❌ Error sending QR data:", error);
@@ -268,8 +236,7 @@
         });
     }
 
-    // Start process
-    getCameras(); // Load available cameras on page load
+    getCameras();
   </script>
 </body>
 </html>
