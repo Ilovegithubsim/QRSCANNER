@@ -10,6 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 
   <style>
+    canvas {
+      display: none !important;
+    }
     * {
       margin: 0;
       padding: 0;
@@ -170,7 +173,9 @@
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear old frames
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clears old frame
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
 
         const centerX = canvas.width / 4;
 const centerY = canvas.height / 4;
