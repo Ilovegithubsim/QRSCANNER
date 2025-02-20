@@ -48,9 +48,6 @@
       font-size: 16px;
       color: #333;
     }
-   canvas {
-  display: none !important;
-}
 
     select {
       background: #ff9a9e;
@@ -110,6 +107,11 @@
       background: #e74c3c !important;
       color: white !important;
     }
+
+    /* 🔥 Hide the extra canvas to prevent duplicate image */
+    canvas {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -125,8 +127,6 @@
       <video id="qr-video" height="300" autoplay playsinline></video>
       <div class="scan-box"></div> <!-- 🔥 Red box for guidance -->
     </div>
-
-    
 
     <div class="result">
       <p id="result">Scanning...</p>
@@ -185,6 +185,7 @@
       setInterval(() => {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear old frames
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         // ✅ Focus on center for better QR scanning
